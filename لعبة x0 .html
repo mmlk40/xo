@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة XO المتطورة</title>
+    <style>
+        :root {
+            --primary-color: #00ffaa;
+            --secondary-color: #0077ff;
+            --dark-bg: #111;
+            --cell-bg: #1a1a1a;
+            --text-color: #f0f0f0;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        header {
+            padding: 20px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0,80,60,0.3), rgba(0,0,0,0.5));
+            border-bottom: 1px solid var(--primary-color);
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 170, 0.3);
+        }
+        
+        .subtitle {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 170, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 170, 0.1);
+        }
+        
+        .score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+        
+        .score-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .x-score .score-title { color: var(--primary-color); }
+        .o-score .score-title { color: var(--secondary-color); }
+        .x-score .score-value { color: var(--primary-color); }
+        .o-score .score-value { color: var(--secondary-color); }
+        
+        .status {
+            margin: 20px 0;
+            font-size: 1.5rem;
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .status.active-x {
+            background-color: rgba(0, 255, 170, 0.1);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+        
+        .status.active-o {
+            background-color: rgba(0, 119, 255, 0.1);
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(80px, 120px));
+            grid-template-rows: repeat(3, minmax(80px, 120px));
+            gap: 12px;
+            margin: 20px auto;
+            perspective: 1000px;
+        }
+        
+        .cell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: var(--cell-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .cell:hover {
+            background-color: #222;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cell.x {
+            color: var(--primary-color);
+            text-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
+        }
+        
+        .cell.o {
+            color: var(--secondary-color);
+            text-shadow: 0 0 15px rgba(0, 119, 255, 0.5);
+        }
+        
+        .cell.winner {
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        button {
+            background: none;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #reset {
+            background: linear-gradient(45deg, var(--primary-color), #00cc88);
+            box-shadow: 0 4px 15px rgba(0, 255, 170, 0.3);
+        }
+        
+        #reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 170, 0.4);
+        }
+        
+        #reset:active {
+            transform: translateY(1px);
+        }
+        
+        #mode {
+            background: linear-gradient(45deg, #555, #333);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        #mode:hover {
+            background: linear-gradient(45deg, #666, #444);
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            opacity: 0;
+            z-index: 100;
+            animation: confetti-fall 3s ease-in-out forwards;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .board {
+                grid-template-columns: repeat(3, minmax(70px, 90px));
+                grid-template-rows: repeat(3, minmax(70px, 90px));
+            }
+            
+            .cell {
+                font-size: 2.5rem;
+            }
+            
+            .score-board {
+                gap: 20px;
+                padding: 10px 15px;
+            }
+            
+            .score-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>لعبة XO المتطورة</h1>
+        <p class="subtitle">استمتع بتجربة حديثة للعبة التيك تاك تو الكلاسيكية</p>
+    </header>
+    
+    <div class="game-container">
+        <div class="score-board">
+            <div class="score x-score">
+                <div class="score-title">لاعب X</div>
+                <div class="score-value" id="score-x">0</div>
+            </div>
+            <div class="score o-score">
+                <div class="score-title">لاعب O</div>
+                <div class="score-value" id="score-o">0</div>
+            </div>
+        </div>
+        
+        <div class="status active-x" id="status">دور اللاعب X</div>
+        
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="reset">إعادة اللعبة</button>
+            <button id="mode">لاعب vs كمبيوتر</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('board');
+            const cells = document.querySelectorAll('.cell');
+            const status = document.getElementById('status');
+            const resetButton = document.getElementById('reset');
+            const modeButton = document.getElementById('mode');
+            const scoreX = document.getElementById('score-x');
+            const scoreO = document.getElementById('score-o');
+            
+            let currentPlayer = 'X';
+            let gameState = ['', '', '', '', '', '', '', '', ''];
+            let gameActive = true;
+            let scores = { x: 0, o: 0 };
+            let vsComputer = false;
+            
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // صفوف
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // أعمدة
+                [0, 4, 8], [2, 4, 6]             // قطري
+            ];
+            
+            function handleCellClick(e) {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+                
+                if (gameState[clickedCellIndex] !== '' || !gameActive) {
+                    return;
+                }
+                
+                makeMove(clickedCellIndex, currentPlayer);
+                
+                if (vsComputer && gameActive && currentPlayer === 'O') {
+                    setTimeout(computerMove, 500);
+                }
+            }
+            
+            function makeMove(index, player) {
+                gameState[index] = player;
+                const cell = document.querySelector(`.cell[data-index="${index}"]`);
+                cell.textContent = player;
+                cell.classList.add(player.toLowerCase());
+                
+                checkResult();
+            }
+            
+            function computerMove() {
+                if (!gameActive) return;
+                
+                // استراتيجية بسيطة للكمبيوتر
+                let availableCells = [];
+                gameState.forEach((cell, index) => {
+                    if (cell === '') availableCells.push(index);
+                });
+                
+                // 1. حاول الفوز إذا كان هناك فرصة
+                for (let condition of winningConditions) {
+                    let [a, b, c] = condition;
+                    if (gameState[a] === 'O' && gameState[b] === 'O' && gameState[c] === '') {
+                        makeMove(c, 'O');
+                        return;
+                    }
+                    if (gameState[a] === 'O' && gameState[c] === 'O' && gameState[b] === '') {
+                        makeMove(b, 'O');
+                        return;
+                    }
+                    if (gameState[b] === 'O' && gameState[c] === 'O' && gameState[a] === '') {
+                        makeMove(a, 'O');
+                        return;
+                    }
+                }
+                
+                // 2. حاول منع اللاعب من الفوز
+                for (let condition of winningConditions) {
+                    let [a, b, c] = condition;
+                    if (gameState[a] === 'X' && gameState[b] === 'X' && gameState[c] === '') {
+                        makeMove(c, 'O');
+                        return;
+                    }
+                    if (gameState[a] === 'X' && gameState[c] === 'X' && gameState[b] === '') {
+                        makeMove(b, 'O');
+                        return;
+                    }
+                    if (gameState[b] === 'X' && gameState[c] === 'X' && gameState[a] === '') {
+                        makeMove(a, 'O');
+                        return;
+                    }
+                }
+                
+                // 3. اختر مركز إذا كان متاحًا
+                if (gameState[4] === '') {
+                    makeMove(4, 'O');
+                    return;
+                }
+                
+                // 4. اختر زاوية عشوائية
+                const corners = [0, 2, 6, 8];
+                const availableCorners = corners.filter(corner => gameState[corner] === '');
+                if (availableCorners.length > 0) {
+                    const randomCorner = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+                    makeMove(randomCorner, 'O');
+                    return;
+                }
+                
+                // 5. أي حركة متاحة
+                if (availableCells.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * availableCells.length);
+                    makeMove(availableCells[randomIndex], 'O');
+                }
+            }
+            
+            function checkResult() {
+                let roundWon = false;
+                let winningCells = [];
+                
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    
+                    if (gameState[a] === '' || gameState[b] === '' || gameState[c] === '') {
+                        continue;
+                    }
+                    
+                    if (gameState[a] === gameState[b] && gameState[b] === gameState[c]) {
+                        roundWon = true;
+                        winningCells = [a, b, c];
+                        break;
+                    }
+                }
+                
+                if (roundWon) {
+                    gameActive = false;
+                    winningCells.forEach(index => {
+                        document.querySelector(`.cell[data-index="${index}"]`).classList.add('winner');
+                    });
+                    
+                    status.textContent = `فاز اللاعب ${currentPlayer}!`;
+                    updateScore(currentPlayer);
+                    createConfetti();
+                    return;
+                }
+                
+                if (!gameState.includes('')) {
+                    gameActive = false;
+                    status.textContent = 'تعادل!';
+                    return;
+                }
+                
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateStatus();
+            }
+            
+            function updateStatus() {
+                status.textContent = `دور اللاعب ${currentPlayer}`;
+                status.className = 'status';
+                status.classList.add(currentPlayer === 'X' ? 'active-x' : 'active-o');
+            }
+            
+            function updateScore(winner) {
+                if (winner === 'X') {
+                    scores.x++;
+                    scoreX.textContent = scores.x;
+                } else {
+                    scores.o++;
+                    scoreO.textContent = scores.o;
+                }
+            }
+            
+            function resetGame() {
+                currentPlayer = 'X';
+                gameState = ['', '', '', '', '', '', '', '', ''];
+                gameActive = true;
+                
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                    cell.style.transform = '';
+                    cell.style.boxShadow = '';
+                });
+                
+                updateStatus();
+            }
+            
+            function toggleMode() {
+                vsComputer = !vsComputer;
+                modeButton.textContent = vsComputer ? 'لاعب vs لاعب' : 'لاعب vs كمبيوتر';
+                resetGame();
+            }
+            
+            function createConfetti() {
+                const colors = ['#00ffaa', '#0077ff', '#ff00aa', '#ffcc00', '#00ccff'];
+                
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.width = `${Math.random() * 10 + 5}px`;
+                    confetti.style.height = `${Math.random() * 10 + 5}px`;
+                    confetti.style.animationDuration = `${Math.random() * 2 + 2}s`;
+                    confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }
+            }
+            
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            resetButton.addEventListener('click', resetGame);
+            modeButton.addEventListener('click', toggleMode);
+        });
+    </script>
+</body>
+</html>
